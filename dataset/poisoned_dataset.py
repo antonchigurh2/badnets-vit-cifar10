@@ -111,3 +111,58 @@ class MNISTPoison(MNIST):
             target = self.target_transform(target)
 
         return img, target
+class CIFAR100Poison(CIFAR100):
+
+    def __init__(
+        self,
+        args,
+        root: str,
+        train: bool = True,
+        transform: Optional[Callable] = None,
+        target_transform: Optional[Callable] = None,
+        download: bool = False,
+    ) -> None:
+        super().__init__(root, train=train, transform=transform, target_transform=target_transform, download=download)
+
+        self.width, self.height, self.channels = self.__shape_info__()
+        self.width = args.image_width
+        self.height = args.image_height
+        if args.class_distinct_trigger:
+            self.trigger_handler = TriggerHandler_Class_Distinct_Label( args.trigger_path, args.trigger_size, args.trigger_label, self.width, self.height)
+        else:
+            self.trigger_handler = TriggerHandler( args.trigger_path, args.trigger_size, args.trigger_label, self.width, self.height)
+        # self.trigger_handler = TriggerHandler( args.trigger_path, args.trigger_size, args.trigger_label, self.width, self.height)
+        self.poisoning_rate = args.poisoning_rate if train else 1.0
+        indices = range(len(self.targets))
+        self.poi_indices = random.sample(indices, k=int(len(indices) * self.poisoning_rate))
+        print(f"Poison {len(self.poi_indices)} over {len(indices)} samples ( poisoning rate {self.poisoning_rate})")
+        for i in range(len(self.targets)):
+            self.targets[i] = 0
+        self.class_distinct_trigger = args.class_distinct_trigger
+
+    def __shape_info__(self):
+        return self.data.shape[1:]
+
+    def __getitem__(self, index):
+        img, target = self.data[index], self.targets[index]
+        img = Image.fromarray(img)
+        img = img.resize((self.width, self.height))
+        tgt = [i for i in range(10)]
+        # NOTE: According to the threat model, the trigger should be put on the image before transform.
+        # (The attacker can only poison the dataset)
+        if index in self.poi_indices:
+            
+            if self.class_distinct_trigger:
+                img = self.trigger_handler.put_trigger(img, random.choice(tgt))
+                # img = self.trigger_handler.put_trigger(img, 0)
+            else:
+                img = self.trigger_handler.put_trigger(img)
+                
+
+        if self.transform is not None:
+            img = self.transform(img)
+
+        if self.target_transform is not None:
+            target = self.target_transform(target)
+
+        return img, 0
