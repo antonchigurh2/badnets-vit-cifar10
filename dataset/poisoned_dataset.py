@@ -35,7 +35,7 @@ class CIFAR10Poison(CIFAR10):
         self.width, self.height, self.channels = self.__shape_info__()
 
         self.trigger_handler = TriggerHandler( args.trigger_path, args.trigger_size, args.trigger_label, self.width, self.height)
-        self.poisoning_rate = args.poisoning_rate if train else 1.0
+        self.poisoning_rate = args.poisoning_rate if train else 0.1
         indices = range(len(self.targets))
         self.poi_indices = random.sample(indices, k=int(len(indices) * self.poisoning_rate))
         print(f"Poison {len(self.poi_indices)} over {len(indices)} samples ( poisoning rate {self.poisoning_rate})")
