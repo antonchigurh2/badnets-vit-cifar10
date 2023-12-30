@@ -1,4 +1,4 @@
-from .poisoned_dataset import CIFAR10Poison, MNISTPoison, CIFAR100Poison
+from .poisoned_dataset import CIFAR10Poison, MNISTPoison 
 from torchvision import datasets, transforms
 import torch 
 import os 
